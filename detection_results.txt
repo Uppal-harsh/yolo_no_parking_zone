@@ -1,0 +1,5 @@
+Inference and OCR Results for check/500_4143.webp:
+Plate Box: [270, 282, 388, 308]
+Confidence: 0.55
+Plate Number: MH 14 TCM 288
+--------------------
