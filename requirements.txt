@@ -1,0 +1,14 @@
+ultralytics
+fastapi
+uvicorn
+jinja2
+python-multipart
+easyocr
+opencv-python-headless
+numpy
+torch
+torchvision
+torchaudio
+onnx
+onnxslim
+onnxruntime

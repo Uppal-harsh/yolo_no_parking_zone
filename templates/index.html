@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No-Parking Admin Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="aurora-bg"></div>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">▲</span>
+                <h1>Admin<span>Portal</span></h1>
+            </div>
+            <div class="status-badge">
+                <span class="pulse"></span> AI Engine Live
+            </div>
+        </header>
+
+        <main>
+            <section class="control-panel">
+                <div class="card glass upload-card">
+                    <h2>Capture & Process</h2>
+                    <p>Upload a vehicle image or video to identify violations.</p>
+                    
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-content">
+                            <span class="icon">📁</span>
+                            <p>Drag files here or <span>browse</span></p>
+                            <input type="file" id="file-input" hidden accept="image/*,video/*">
+                        </div>
+                    </div>
+                    
+                    <div class="preview-area" id="preview-area" style="display: none;">
+                        <img id="image-preview" src="" alt="Preview">
+                        <div class="loader" id="loader"></div>
+                    </div>
+                </div>
+
+                <div class="card glass stats-card">
+                    <h2>Live Statistics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <label>Detections Today</label>
+                            <span id="stat-total">1,284</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Active Warnings</label>
+                            <span id="stat-warnings" class="text-warning">42</span>
+                        </div>
+                        <div class="stat-item">
+                            <label>Challans Issued</label>
+                            <span id="stat-challans" class="text-danger">15</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="violation-feed">
+                <div class="card glass feed-card">
+                    <div class="card-header">
+                        <h2>Violation Log</h2>
+                        <button class="btn-refresh">Refresh Log</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Plate Number</th>
+                                    <th>Time Parked</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="violation-body">
+                                <!-- Dynamic Content -->
+                                <tr>
+                                    <td class="plate-code">MH 14 TCM 288</td>
+                                    <td>09:42:15 AM</td>
+                                    <td><span class="badge badge-warning">Warning</span></td>
+                                    <td><button class="btn-view">View Details</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
