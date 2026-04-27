@@ -1,5 +1,16 @@
-Inference and OCR Results for check/500_4143.webp:
-Plate Box: [270, 282, 388, 308]
-Confidence: 0.55
-Plate Number: MH 14 TCM 288
+Inference and OCR Results for folder: check
+========================================
+
+Image: capture.jpg
+--------------------
+
+Image: image.jpg
+--------------------
+
+Image: raspi_1777265508.jpg
+Plate: DL6CJ8404 (Conf: 0.81)
+--------------------
+
+Image: test.jpg
+Plate: P39E1493 (Conf: 0.79)
 --------------------

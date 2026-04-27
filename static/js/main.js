@@ -5,8 +5,100 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('image-preview');
     const loader = document.getElementById('loader');
     const violationBody = document.getElementById('violation-body');
+    const btnRun = document.getElementById('btn-run');
 
     let activeViolations = [];
+
+const API_BASE = "http://localhost:8080";
+
+    // Fetch initial status from server
+    async function fetchLogs() {
+        console.log("Checking for new logs...");
+        try {
+            const response = await fetch(`${API_BASE}/logs`);
+            const data = await response.json();
+            console.log("Logs received:", data.logs);
+            data.logs.forEach(log => {
+                // If already in activeViolations, skip
+                if (activeViolations.find(v => v.plate === log.plate)) return;
+
+                console.log("Adding new violation to UI:", log.plate);
+                const violation = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    plate: log.plate,
+                    phone: log.phone,
+                    startTime: Date.now() - (log.elapsed * 1000),
+                    status: log.status,
+                    smsSent: log.status === 'CHALLANED'
+                };
+                activeViolations.push(violation);
+                addViolationRow(violation);
+            });
+        } catch (e) { console.error("Fetch error:", e); }
+    }
+    fetchLogs();
+    setInterval(fetchLogs, 2000); // Check every 2 seconds
+
+    // Helper to add row
+    function addViolationRow(v) {
+        const row = document.createElement('tr');
+        row.id = `row-${v.id}`;
+        row.innerHTML = `
+            <td class="plate-code">${v.plate}</td>
+            <td class="phone-num">${v.phone}</td>
+            <td><span id="timer-${v.id}">0:00</span> elapsed</td>
+            <td><span id="status-${v.id}" class="badge">${v.status}</span></td>
+            <td><button class="btn-view" onclick="removeViolation('${v.id}')">Clear</button></td>
+        `;
+        violationBody.prepend(row);
+    }
+
+    // Run Button Logic (Loop Mode)
+    let detectionInterval = null;
+
+    btnRun.addEventListener('click', async () => {
+        if (detectionInterval) {
+            // Stop Loop
+            clearInterval(detectionInterval);
+            detectionInterval = null;
+            btnRun.innerText = "Run Detection Loop";
+            btnRun.style.background = "#06b6d4";
+            console.log("Detection loop stopped.");
+        } else {
+            // Start Loop
+            btnRun.innerText = "Stop Detection Loop (Every 10s)";
+            btnRun.style.background = "#ef4444";
+            
+            console.log("Detection loop started.");
+            
+            // Run once immediately
+            runSingleDetection();
+            
+            // Set interval
+            detectionInterval = setInterval(runSingleDetection, 10000); // 10 seconds
+        }
+    });
+
+    async function runSingleDetection() {
+        console.log("Triggering 10s capture...");
+        try {
+            const response = await fetch(`${API_BASE}/api/run-simulation`);
+            const data = await response.json();
+            
+            if (response.ok && data.detections) {
+                displayResults(data.detections);
+                if (data.image_url) {
+                    imagePreview.src = `${API_BASE}${data.image_url}`;
+                    dropZone.style.display = 'none';
+                    previewArea.style.display = 'block';
+                }
+            } else {
+                console.error(`Loop Error: ${data.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Loop Request failed:', error);
+        }
+    }
 
     // Drag and Drop handlers
     dropZone.addEventListener('click', () => fileInput.click());
@@ -46,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('file', file);
 
         try {
-            const response = await fetch('/upload', {
+            const response = await fetch(`${API_BASE}/upload`, {
                 method: 'POST',
                 body: formData
             });
@@ -63,49 +155,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayResults(detections) {
         if (detections.length === 0) {
-            alert('No license plates detected.');
+            console.log('No license plates detected.');
             return;
         }
 
         detections.forEach(det => {
+            // Check if already tracking this plate
+            if (activeViolations.find(v => v.plate === det.plate)) return;
+
             const id = Math.random().toString(36).substr(2, 9);
             const violation = {
                 id: id,
                 plate: det.plate,
+                phone: det.phone,
                 startTime: Date.now(),
-                status: 'SAFE'
+                status: 'Checking',
+                smsSent: false
             };
             
             activeViolations.push(violation);
-            
-            const row = document.createElement('tr');
-            row.id = `row-${id}`;
-            row.innerHTML = `
-                <td class="plate-code">${det.plate}</td>
-                <td><span id="timer-${id}">0:00</span> elapsed</td>
-                <td><span id="status-${id}" class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Checking</span></td>
-                <td><button class="btn-view" onclick="removeViolation('${id}')">Clear</button></td>
-            `;
-            violationBody.prepend(row);
+            addViolationRow(violation);
         });
     }
 
     // Tick function to update status every second
     setInterval(() => {
-        activeViolations.forEach(v => {
+        activeViolations.forEach(async v => {
             const elapsed = Math.floor((Date.now() - v.startTime) / 1000);
             const timerElement = document.getElementById(`timer-${v.id}`);
             const statusElement = document.getElementById(`status-${v.id}`);
 
             if (timerElement) timerElement.innerText = formatTime(elapsed);
             
-            if (elapsed >= 420) { // 7 minutes
+            if (elapsed >= 300 && !v.smsSent) { // 5 minutes
+                v.smsSent = true;
                 v.status = 'CHALLANED';
                 if (statusElement) {
-                    statusElement.innerText = 'Challan';
+                    statusElement.innerText = 'Challan Sent';
                     statusElement.className = 'badge badge-danger';
                 }
-            } else if (elapsed >= 300) { // 5 minutes
+                
+                // Trigger Backend SMS
+                try {
+                    await fetch(`${API_BASE}/api/send-sms`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            plate: v.plate,
+                            phone: v.phone,
+                            message: `E-Challan: Vehicle ${v.plate} has been parked in a No-Parking zone for over 5 minutes.`
+                        })
+                    });
+                } catch (e) { console.error("Failed to send SMS trigger"); }
+            } else if (elapsed >= 180 && v.status === 'Checking') { // 3 minutes warning
                 v.status = 'WARNING';
                 if (statusElement) {
                     statusElement.innerText = 'Warning';
